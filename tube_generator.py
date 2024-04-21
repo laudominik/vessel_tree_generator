@@ -196,18 +196,52 @@ if __name__ == "__main__":
         ###################################
         if args.generate_projections:
             img_dim = 512
-            ImagerPixelSpacing = 0.35
+            ImagerPixelSpacing = 0.35 / 1000
             SID = 1.2
+            SOD = 0.75
 
             vessel_info["ImagerPixelSpacing"] = ImagerPixelSpacing
             vessel_info["SID"] = SID
+            vessel_info["SOD"] = SOD
 
             # centering vessel at origin for cone-beam projections
             centered_coords = np.subtract(coords, np.mean(surface_coords[0].reshape(-1,3), axis=0))
             use_RCA_angles = args.vessel_type == "RCA"
-            images, theta_array, phi_array = generate_projection_images(centered_coords, spline_index,
-                                                                        num_projections, img_dim, save_path, dataset_name,
-                                                                        ImagerPixelSpacing, SID, RCA=use_RCA_angles)
+
+            def plot_set_pts(ax, pts):
+                ax.scatter([x for (x, _, _) in pts],
+               [y for (_, y, _) in pts],
+               [z for (_, _, z) in pts])
+            theta_array, phi_array = pick_angles(num_projections)
+            
+            for i in range(num_projections):
+                projected = project(coords, theta_array[i], phi_array[i], SOD, SID, ImagerPixelSpacing, img_dim)
+                projected = projected
+
+                ind_lower_cutoff = np.all(projected > 0, axis=1)
+                ind_upper_cutoff = np.all(projected < img_dim, axis=1)
+                cutoff_array = np.stack((ind_lower_cutoff, ind_upper_cutoff), axis=1)
+                valid_point_inds = np.all(cutoff_array, axis=1)
+                print("A", len(valid_point_inds))
+                print("B", len(projected))
+                projected = projected[valid_point_inds, :].astype("int")
+
+                img = np.zeros((img_dim, img_dim))
+
+                for x,y in projected:
+                    img[x, y] = 255
+                # remove gaps in mask
+                img = morph.binary_closing(img, morph.disk(2))
+                img = filters.gaussian(img, sigma=0.5) > 0.25
+                suffixes = ['a', 'b', 'c', 'd']
+
+                if not os.path.exists(os.path.join(save_path, dataset_name, "images", dataset_name)):
+                    os.makedirs(os.path.join(save_path, dataset_name, "images", dataset_name))
+
+                path = os.path.join(save_path, dataset_name, "images", dataset_name, "image{:04d}{}.png".format(spline_index,suffixes[i]))
+
+                plt.imsave(path, img, cmap="gray")
+
             vessel_info['theta_array'] = [float(i) for i in theta_array.tolist()]
             vessel_info['phi_array'] = [float(j) for j in phi_array.tolist()]
 

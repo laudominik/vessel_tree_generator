@@ -4,6 +4,7 @@ from skimage import morphology as morph
 from skimage import filters
 import matplotlib.pyplot as plt
 import os
+import open3d as o3d
 
 
 def set_axes_equal(ax):
@@ -280,3 +281,32 @@ def generate_projection_images(surface_coords, spline_index, num_projections, im
         image_list.append(blurred_binary_image)
 
     return image_list, theta_array, phi_array
+
+
+def pick_angles(num_projections):
+    clinical_angles = ['LAO 40, CRA 10', 'RAO 75, CRA 10', 'LAO 0, CRA 25', 'RAO 30, CAU 0']
+    theta_list, phi_list = convert_clinical_to_standard_angles(clinical_angles)
+
+    theta_array = np.array([theta_list[0], random.uniform(theta_list[1]-5, theta_list[1]+5), random.uniform(theta_list[2]-5, theta_list[2]+5), random.uniform(theta_list[3]-5, theta_list[3]+5)], )[:num_projections]
+    phi_array = -(np.array([phi_list[0], random.uniform(phi_list[1]-5, phi_list[1]+5), random.uniform(phi_list[2], phi_list[2]+10), random.uniform(phi_list[3], phi_list[3]+10)])+90)[:num_projections]
+    return theta_array, phi_array
+
+def project(pts, theta, phi, sod, sid, spacing, image_size):
+    reconstructed = []
+    w, h = image_size, image_size
+    spacing_c, spacing_r = spacing, spacing
+    rotate_matrix = np.array([np.deg2rad(-theta), np.deg2rad(-phi), 0])
+    for element in pts:
+        sphere = o3d.geometry.TriangleMesh.create_sphere(radius=.1)
+        sphere.translate(element)
+        sphere.rotate(sphere.get_rotation_matrix_from_xyz(rotate_matrix), center=(0, 0, 0))
+
+        pt = sphere.get_center()
+        coeff = (sid + pt[2])/sod
+        x = w / 2 + pt[0]  * coeff / spacing_c 
+        y = h / 2 + pt[1]  * coeff / spacing_r 
+        reconstructed.append((x, y))
+
+    return np.array(reconstructed)
+
+
