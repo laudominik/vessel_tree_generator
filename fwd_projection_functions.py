@@ -293,13 +293,27 @@ def pick_angles(num_projections):
 
 def project(pts, theta, phi, sod, sid, spacing, image_size):
     reconstructed = []
-    w, h = image_size, image_size
-    spacing_c, spacing_r = spacing, spacing
+    w, h = image_size
+    spacing_c, spacing_r = spacing
     rotate_matrix = np.array([np.deg2rad(-theta), np.deg2rad(-phi), 0])
+    t, p = np.deg2rad(-theta), np.deg2rad(-phi)
+    import math
+    rot_X = np.array([
+                      [1, 0, 0],
+                      [0, math.cos(t), -math.sin(t)],
+                      [0, math.sin(t), math.cos(t)]])
+    rot_Y = np.array([
+                      [math.cos(p), 0, math.sin(p)],
+                      [0, 1, 0],
+                      [-math.sin(p), 0, math.cos(p)]])
+
+    rotate_matrix = rot_Y @ rot_X
+
+
     for element in pts:
         sphere = o3d.geometry.TriangleMesh.create_sphere(radius=.1)
         sphere.translate(element)
-        sphere.rotate(sphere.get_rotation_matrix_from_xyz(rotate_matrix), center=(0, 0, 0))
+        sphere.rotate(rotate_matrix, center=(0, 0, 0))
 
         pt = sphere.get_center()
         coeff = (sid + pt[2])/sod
@@ -308,5 +322,33 @@ def project(pts, theta, phi, sod, sid, spacing, image_size):
         reconstructed.append((x, y))
 
     return np.array(reconstructed)
+
+
+def project_multiple(pts, theta, phi, sod, sid, spacing, img_dim):
+    import math
+    spacing_c, spacing_r = spacing
+    w, h = img_dim
+    reconstructed = np.zeros((pts.shape[0], 2))
+
+    t, p = np.deg2rad(-theta), np.deg2rad(-phi)
+    rot_X = np.array([
+                      [1, 0, 0],
+                      [0, math.cos(t), -math.sin(t)],
+                      [0, math.sin(t), math.cos(t)]])
+    rot_Y = np.array([
+                      [math.cos(p), 0, math.sin(p)],
+                      [0, 1, 0],
+                      [-math.sin(p), 0, math.cos(p)]])
+
+    rotate_matrix = rot_Y @ rot_X
+    pts_rotated = pts @ rotate_matrix.T
+
+    coeff = (sid)/(sod + pts_rotated[:, 2])
+    reconstructed[:, 0] = w / 2 + pts_rotated[:, 0] * coeff / spacing_c
+    reconstructed[:, 1] = h / 2 + pts_rotated[:, 1] * coeff / spacing_r
+    return reconstructed
+
+
+
 
 
