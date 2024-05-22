@@ -1,10 +1,10 @@
+__package__ = "generator"
+
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from fwd_projection_functions import *
 import os
-from tube_functions import *
-from generator_functions import *
+from module import *
 import random
 import json
 import copy

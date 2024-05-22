@@ -1,8 +1,8 @@
 from geomdl import BSpline, utilities, operations
 import numpy as np
-from fwd_projection_functions import *
+from .fwd_projection_functions import *
 import random
-from augmentation import shear_centerlines, warp1
+from .augmentation import shear_centerlines, warp1
 
 # we use the random library instead of numpy.random for most functions due to
 # issues with numpy generating identical random numbers when using multiprocessing

@@ -1,6 +1,6 @@
 import copy
 
-from tube_functions import *
+from .tube_functions import *
 
 
 def generate_vessel_3d(rng, vessel_type, control_point_path, shear, warp, spline_index=0):
