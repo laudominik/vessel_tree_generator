@@ -296,7 +296,7 @@ def get_vessel_surface(curve, derivatives, branch_points, num_centerline_points,
 
     return X, Y, Z, new_r, percent_stenosis, stenosis_pos, num_stenosis_points
 
-def branched_tree_generator(parent_curve, curve_derivative, num_branches, sample_size, side_branch_properties, curve_type="spline"):
+def branched_tree_generator(ctrl_pt_path, parent_curve, curve_derivative, num_branches, sample_size, side_branch_properties, curve_type="spline"):
     '''
     Generates centerlines of branches that attach to parent curve at random locations
     parent_curve: Nx3 array of centerline points and radii
@@ -351,7 +351,7 @@ def branched_tree_generator(parent_curve, curve_derivative, num_branches, sample
             # can adjust rotations if branches are crossing/overlapping etc.
             rotations = np.array([[-10+random.randint(0,5)*(-1)**random.getrandbits(1),0], [0, 15+random.randint(0,5)*(-1)**random.getrandbits(1)], [-10+random.randint(0,5)*(-1)**random.getrandbits(1),10]])
             rng = np.random.default_rng()
-            control_points = np.load(os.path.join('RCA_branch_control_points/moderate', "{}_ctrl_points.npy".format(side_branch_properties[i+1]["name"]))) / 1000
+            control_points = np.load(os.path.join(ctrl_pt_path, "{}_ctrl_points.npy".format(side_branch_properties[i+1]["name"]))) / 1000
             mean_ctrl_pts = np.mean(control_points, axis=0)
             stdev_ctrl_pts = np.std(control_points, axis=0)
 

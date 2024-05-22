@@ -45,7 +45,7 @@ def generate_vessel_3d(rng, vessel_type, control_point_path, shear, warp, spline
         stdev_ctrl_pts = np.std(RCA_control_points, axis=0)
         main_C, main_dC = RCA_vessel_curve(sample_size, mean_ctrl_pts, stdev_ctrl_pts, length, rng, shear, warp)
 
-    tree, dtree, connections = branched_tree_generator(main_C, main_dC, num_branches, sample_size, side_branch_properties, curve_type=vessel_type)
+    tree, dtree, connections = branched_tree_generator(control_point_path, main_C, main_dC, num_branches, sample_size, side_branch_properties, curve_type=vessel_type)
 
     num_theta = 120
     spline_array_list = []
