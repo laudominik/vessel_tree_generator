@@ -123,8 +123,13 @@ def generate_vessel_3d(rng, vessel_type, control_point_path, shear, warp, spline
 
     return coords, vessel_info, spline_array_list
 
-def make_projection(coords, theta, phi, sod, sid, spacing, img_dim=512):
+def make_projection(coords, theta, phi, sod, sid, spacing, img_dim=512, rescale=False):
+    def standardize(arr):
+        return (arr - np.mean(arr)) / np.std(arr)
     projected = project_multiple(coords, theta, phi, sod, sid, spacing, (img_dim, img_dim))
+    if rescale:
+        projected[:, 1] = (standardize(projected[:, 1]) * 1/4 + 1) * img_dim/2
+        projected[:, 0] = (standardize(projected[:, 0]) * 1/4 +  1) * img_dim/2
     ind_lower_cutoff = np.all(projected > 0, axis=1)
     ind_upper_cutoff = np.all(projected < img_dim, axis=1)
     cutoff_array = np.stack((ind_lower_cutoff, ind_upper_cutoff), axis=1)

@@ -105,7 +105,7 @@ if __name__ == "__main__":
         theta_array, phi_array = pick_angles(num_projections)
         
         for i in range(num_projections):
-            img = make_projection(coords, theta_array[i], phi_array[i], SOD, SID, (ImagerPixelSpacing, ImagerPixelSpacing))
+            img = make_projection(coords, theta_array[i], phi_array[i], SOD, SID, (ImagerPixelSpacing, ImagerPixelSpacing), rescale=vessel_type in ['LCX', 'LAD'])
             suffixes = ['a', 'b', 'c', 'd']
 
             if not os.path.exists(os.path.join(save_path, dataset_name, "images", dataset_name)):
