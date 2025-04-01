@@ -4,7 +4,7 @@ from .tube_functions import *
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def generate_vessel_3d(rng, vessel_type, control_point_path, shear, warp, spline_index=0):
+def generate_vessel_3d(rng, vessel_type, control_point_path, shear, warp, spline_index=0, visualization=False):
     main_branch_properties = {
         1: {"name": "RCA", "min_length": 0.120, "max_length": 0.140, "max_diameter": 0.005}, #units in [m] not [mm]
         2: {"name": "LAD", "min_length": 0.100, "max_length": 0.130, "max_diameter": 0.005},
@@ -111,14 +111,16 @@ def generate_vessel_3d(rng, vessel_type, control_point_path, shear, warp, spline
             vessel_info[key]['stenosis_position'] = [int(i/jj) for i in stenosis_pos]
             vessel_info[key]['num_stenosis_points'] = [int(i/jj) for i in num_stenosis_points]
 
-    fig = plt.figure(figsize=(2,2), dpi=200, constrained_layout=True)
-    ax = fig.add_subplot(projection=Axes3D.name)
-    ax.view_init(elev=20., azim=-70)
-    for surf_coords in surface_coords:
-        ax.plot_surface(surf_coords[:,:,0], surf_coords[:,:,1], surf_coords[:,:,2], alpha=0.5, color="blue")
-    set_axes_equal(ax)
-    plt.axis('off')
-    plt.show()
+    if visualization:
+        fig = plt.figure(figsize=(2,2), dpi=200, constrained_layout=True)
+        plt.title(vessel_type)
+        ax = fig.add_subplot(projection=Axes3D.name)
+        ax.view_init(elev=20., azim=-70)
+        for surf_coords in surface_coords:
+            ax.plot_surface(surf_coords[:,:,0], surf_coords[:,:,1], surf_coords[:,:,2], alpha=0.5, color="blue")
+        set_axes_equal(ax)
+        plt.axis('off')
+        plt.show()
 
 
     return coords, vessel_info, spline_array_list

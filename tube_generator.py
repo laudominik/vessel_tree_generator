@@ -85,9 +85,10 @@ if __name__ == "__main__":
 
     for i in range(num_trees):
         spline_index = i
+        vessel_type = args.vessel_type
 
-        cpp = "./LCA_branch_control_points/moderate" if args.vessel_type in ['LCX', 'LAD'] else "./RCA_branch_control_points/moderate"
-        coords, vessel_info, spline_array_list = generate_vessel_3d(rng, args.vessel_type, cpp, args.shear, args.warp, spline_index)
+        cpp = "./LCA_branch_control_points/moderate" if vessel_type in ['LCX', 'LAD'] else "./RCA_branch_control_points/moderate"
+        coords, vessel_info, spline_array_list = generate_vessel_3d(rng, vessel_type, cpp, args.shear, args.warp, spline_index, args.save_visualization)
         if coords is None:
             continue
         ###################################
