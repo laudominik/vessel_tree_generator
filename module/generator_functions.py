@@ -1,6 +1,7 @@
 import copy
 
 from .tube_functions import *
+from mpl_toolkits.mplot3d import Axes3D
 
 
 def generate_vessel_3d(rng, vessel_type, control_point_path, shear, warp, spline_index=0):
@@ -40,10 +41,11 @@ def generate_vessel_3d(rng, vessel_type, control_point_path, shear, warp, spline
     elif vessel_type == 'spline':
         main_C, main_dC = random_spline(length, order, np.random.randint(order + 1, 10), sample_size)
     else:
-        RCA_control_points = np.load(os.path.join(control_point_path, "RCA_ctrl_points.npy")) / 1000 # [m] instead of [mm]
-        mean_ctrl_pts = np.mean(RCA_control_points, axis=0)
-        stdev_ctrl_pts = np.std(RCA_control_points, axis=0)
-        main_C, main_dC = RCA_vessel_curve(sample_size, mean_ctrl_pts, stdev_ctrl_pts, length, rng, shear, warp)
+        control_points = np.load(os.path.join(control_point_path, f"{vessel_type}_ctrl_points.npy")) / 1000 # [m] instead of [mm]
+        is_left = vessel_type in ['LCX', 'LAD']
+        mean_ctrl_pts = control_points.copy() if is_left else np.mean(control_points, axis=0)
+        stdev_ctrl_pts = np.std(control_points, axis=0)
+        main_C, main_dC = vessel_curve(sample_size, mean_ctrl_pts, stdev_ctrl_pts, length, rng, shear=shear, warp=warp, is_left=is_left)
 
     tree, dtree, connections = branched_tree_generator(control_point_path, main_C, main_dC, num_branches, sample_size, side_branch_properties, curve_type=vessel_type)
 
@@ -108,6 +110,16 @@ def generate_vessel_3d(rng, vessel_type, control_point_path, shear, warp, spline
             vessel_info[key]['stenosis_severity'] = [float(i) for i in percent_stenosis]
             vessel_info[key]['stenosis_position'] = [int(i/jj) for i in stenosis_pos]
             vessel_info[key]['num_stenosis_points'] = [int(i/jj) for i in num_stenosis_points]
+
+    fig = plt.figure(figsize=(2,2), dpi=200, constrained_layout=True)
+    ax = fig.add_subplot(projection=Axes3D.name)
+    ax.view_init(elev=20., azim=-70)
+    for surf_coords in surface_coords:
+        ax.plot_surface(surf_coords[:,:,0], surf_coords[:,:,1], surf_coords[:,:,2], alpha=0.5, color="blue")
+    set_axes_equal(ax)
+    plt.axis('off')
+    plt.show()
+
 
     return coords, vessel_info, spline_array_list
 

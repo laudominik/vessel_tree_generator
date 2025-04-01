@@ -4,7 +4,6 @@ from skimage import morphology as morph
 from skimage import filters
 import matplotlib.pyplot as plt
 import os
-import open3d as o3d
 
 
 def set_axes_equal(ax):
@@ -219,7 +218,7 @@ def generate_projection_images(surface_coords, spline_index, num_projections, im
     theta_array = np.array([-90, random.uniform(-75, -55), random.uniform(-40,-20), random.uniform(30,60)])[:num_projections]
     phi_array = -(np.array([90, random.uniform(45, 65), random.uniform(15,35), random.uniform(80,110)])[:num_projections])+90
 
-    # RCA uses standard clinical angles and a few other angles where most branches are visible
+    # RCA uses standard clinical angles and a few other angles where most `branche`s are visible
     if RCA:
         clinical_angles = ['LAO 40, CRA 10', 'RAO 75, CRA 10', 'LAO 0, CRA 25', 'RAO 30, CAU 0']
         theta_list, phi_list = convert_clinical_to_standard_angles(clinical_angles)
@@ -290,39 +289,6 @@ def pick_angles(num_projections):
     theta_array = np.array([theta_list[0], random.uniform(theta_list[1]-5, theta_list[1]+5), random.uniform(theta_list[2]-5, theta_list[2]+5), random.uniform(theta_list[3]-5, theta_list[3]+5)], )[:num_projections]
     phi_array = -(np.array([phi_list[0], random.uniform(phi_list[1]-5, phi_list[1]+5), random.uniform(phi_list[2], phi_list[2]+10), random.uniform(phi_list[3], phi_list[3]+10)])+90)[:num_projections]
     return theta_array, phi_array
-
-def project(pts, theta, phi, sod, sid, spacing, image_size):
-    reconstructed = []
-    w, h = image_size
-    spacing_c, spacing_r = spacing
-    rotate_matrix = np.array([np.deg2rad(-theta), np.deg2rad(-phi), 0])
-    t, p = np.deg2rad(-theta), np.deg2rad(-phi)
-    import math
-    rot_X = np.array([
-                      [1, 0, 0],
-                      [0, math.cos(t), -math.sin(t)],
-                      [0, math.sin(t), math.cos(t)]])
-    rot_Y = np.array([
-                      [math.cos(p), 0, math.sin(p)],
-                      [0, 1, 0],
-                      [-math.sin(p), 0, math.cos(p)]])
-
-    rotate_matrix = rot_Y @ rot_X
-
-
-    for element in pts:
-        sphere = o3d.geometry.TriangleMesh.create_sphere(radius=.1)
-        sphere.translate(element)
-        sphere.rotate(rotate_matrix, center=(0, 0, 0))
-
-        pt = sphere.get_center()
-        coeff = (sid + pt[2])/sod
-        x = w / 2 + pt[0]  * coeff / spacing_c 
-        y = h / 2 + pt[1]  * coeff / spacing_r 
-        reconstructed.append((x, y))
-
-    return np.array(reconstructed)
-
 
 def project_multiple(pts, theta, phi, sod, sid, spacing, img_dim):
     import math

@@ -61,7 +61,7 @@ def random_spline(length, degree, num_control_points, sample_size):
 
     return C, dC
 
-def RCA_vessel_curve(sample_size, mean_ctrl_pts, stdev_ctrl_pts, length, rng, is_main=True, shear=False, warp=False):
+def vessel_curve(sample_size, mean_ctrl_pts, stdev_ctrl_pts, length, rng, is_main=True, shear=False, warp=False, is_left=False):
     '''
     sample size: number of centerline points to interpolate
     mean_ctrl_pts: mean vessel control points to sample from
@@ -74,9 +74,10 @@ def RCA_vessel_curve(sample_size, mean_ctrl_pts, stdev_ctrl_pts, length, rng, is
     warp: bool: apply sin/cos based warping of point
     '''
 
-    #random_ctrl_points = rng.normal(mean_ctrl_pts, stdev_ctrl_pts).reshape(-1,3) #if using for machine learning, avoid using gaussian sampling
-    random_ctrl_points = rng.uniform(mean_ctrl_pts - 1.5*stdev_ctrl_pts, mean_ctrl_pts+stdev_ctrl_pts+1.5*stdev_ctrl_pts)
-    if is_main:
+    random_ctrl_points =  mean_ctrl_pts + np.random.uniform(-0.0045, 0.0045, size=mean_ctrl_pts.shape) if is_left else rng.uniform(mean_ctrl_pts - 1.5*stdev_ctrl_pts, mean_ctrl_pts+stdev_ctrl_pts+1.5*stdev_ctrl_pts)
+
+    print(random_ctrl_points.shape)
+    if is_main and not is_left:
         # for RCA, this ensures random sampling doesn't produce a non-physiological centerline
         # does not affect random splines or cylinders
         if random_ctrl_points[0,-1] - random_ctrl_points[1,-1] > 0.0001:
@@ -348,6 +349,13 @@ def branched_tree_generator(ctrl_pt_path, parent_curve, curve_derivative, num_br
             branch_C = np.array(rotated_C)
             dC = np.subtract(np.array(rotated_C[1:]), np.array(rotated_C[:-1]))
         else:
+            if curve_type == 'LAD':
+                if pos + 35 < len(parent_curve):
+                    pos = pos + 35
+                else:
+                    if pos + 20 <len(parent_curve):
+                        pos + 20
+
             # can adjust rotations if branches are crossing/overlapping etc.
             rotations = np.array([[-10+random.randint(0,5)*(-1)**random.getrandbits(1),0], [0, 15+random.randint(0,5)*(-1)**random.getrandbits(1)], [-10+random.randint(0,5)*(-1)**random.getrandbits(1),10]])
             rng = np.random.default_rng()
@@ -355,7 +363,7 @@ def branched_tree_generator(ctrl_pt_path, parent_curve, curve_derivative, num_br
             mean_ctrl_pts = np.mean(control_points, axis=0)
             stdev_ctrl_pts = np.std(control_points, axis=0)
 
-            branch, dC = RCA_vessel_curve(sample_size, mean_ctrl_pts, stdev_ctrl_pts, branch_length, rng, is_main=False, shear=True, warp=True)
+            branch, dC = vessel_curve(sample_size, mean_ctrl_pts, stdev_ctrl_pts, branch_length, rng, is_main=False, shear=True, warp=True)
             branch_C = branch - branch[0, :] + parent_curve[pos,:]
             theta, phi = rotations[i]
             branch_C = rotate_branch(branch_C, theta, phi, center_rotation=False)

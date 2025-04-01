@@ -62,14 +62,12 @@ supersampled_num_centerline_points = jj * num_centerline_points #use larger numb
 num_branches = args.num_branches  # set to 0 if not adding side branches
 order = 3
 
-# if generating single vessels, can modify this dict to include appropriate parameters for other vessels
 main_branch_properties = {
     1: {"name": "RCA", "min_length": 0.120, "max_length": 0.140, "max_diameter": 0.005}, #units in [m] not [mm]
     2: {"name": "LAD", "min_length": 0.100, "max_length": 0.130, "max_diameter": 0.005},
     3: {"name": "LCx", "min_length": 0.080, "max_length": 0.100, "max_diameter": 0.0045},
 }
 
-# these values correspond to RCA tree branches, can modify for other trees
 side_branch_properties = {
     1: {"name": "SA", "length": 0.035, "min_radius": 0.0009, "max_radius": 0.0011, "parametric_position": [0.03, 0.12]},
     2: {"name": "AM", "length": 0.0506, "min_radius": 0.001, "max_radius": 0.0012, "parametric_position": [0.18, 0.35]},
@@ -87,7 +85,9 @@ if __name__ == "__main__":
 
     for i in range(num_trees):
         spline_index = i
-        coords, vessel_info, spline_array_list = generate_vessel_3d(rng, args.vessel_type, args.control_point_path, args.shear, args.warp, spline_index)
+
+        cpp = "./LCA_branch_control_points/moderate" if args.vessel_type in ['LCX', 'LAD'] else "./RCA_branch_control_points/moderate"
+        coords, vessel_info, spline_array_list = generate_vessel_3d(rng, args.vessel_type, cpp, args.shear, args.warp, spline_index)
         if coords is None:
             continue
         ###################################
@@ -112,7 +112,6 @@ if __name__ == "__main__":
                 os.makedirs(os.path.join(save_path, dataset_name, "images", dataset_name))
 
             path = os.path.join(save_path, dataset_name, "images", dataset_name, "image{:04d}{}.png".format(spline_index,suffixes[i]))
-
             plt.imsave(path, img, cmap="gray")
 
         vessel_info['theta_array'] = [float(i) for i in theta_array.tolist()]
