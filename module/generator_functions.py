@@ -48,82 +48,86 @@ def generate_vessel_3d(rng, vessel_type, control_point_path, shear, warp, spline
         main_C, main_dC = vessel_curve(sample_size, mean_ctrl_pts, stdev_ctrl_pts, length, rng, shear=shear, warp=warp, is_left=is_left)
 
     tree, dtree, connections = branched_tree_generator(control_point_path, main_C, main_dC, num_branches, sample_size, side_branch_properties, curve_type=vessel_type)
-
+    for conn in connections:
+        if conn is not None:
+            print(main_C[conn])
+    
+    tree = [main_C]
+    dtree = [main_dC]
+    segment_ends = connections
+    connections=[None]
+    
+    print(segment_ends)
+    
     num_theta = 120
     spline_array_list = []
     surface_coords = []
-    coords = np.empty((0,3))
+    # coords = np.empty((0,3))
+    coords = []
 
     ##############################################################
     # Generate radii and surface coordinates for centerline tree #
     ##############################################################
     skip = False
-    for ind in range(len(tree)):
-        C = tree[ind]
-        dC = dtree[ind]
-        if ind == 0:
-            rand_stenoses = np.random.randint(0, 3)
-            key = "main_vessel"
-            main_is_true = True
-            max_radius = [random.uniform(0.004, main_branch_properties[branch_ID]['max_diameter']) / 2]
-
-        else:
-            rand_stenoses = np.random.randint(0, 2)
-            max_radius = [random.uniform(side_branch_properties[ind]['min_radius'], side_branch_properties[ind]['max_radius'])]
-            key = "branch{}".format(ind)
-            main_is_true = False
-
-        percent_stenosis = None
-        stenosis_pos = None
-        num_stenosis_points = None
-
-        if num_stenoses is not None:
-            rand_stenoses = num_stenoses
-
-        try:
-            X,Y,Z, new_radius_vec, percent_stenosis, stenosis_pos, num_stenosis_points = get_vessel_surface(C, dC, connections, supersampled_num_centerline_points, num_theta, max_radius,
-                                                                                                        is_main_branch = main_is_true,
-                                                                                                        num_stenoses=rand_stenoses,
-                                                                                                        constant_radius=False,
-                                                                                                        stenosis_severity=None,
-                                                                                                        stenosis_position=None,
-                                                                                                        stenosis_length=None,
-                                                                                                        stenosis_type="gaussian",
-                                                                                                        return_surface=True)
-        except ValueError:
-            print("Invalid sampling, skipping {}".format(spline_index))
-            return None, None, None
-
-        spline_array = np.concatenate((C, np.expand_dims(new_radius_vec, axis=-1)), axis=1)[::jj,:]
-        spline_array_list.append(spline_array)
-
-        branch_coords = np.stack((X.T,Y.T,Z.T)).T
-        surface_coords.append(branch_coords)
-        coords = np.concatenate((coords,np.stack((X.flatten(), Y.flatten(), Z.flatten())).T))
-
-        vessel_info[key]['num_stenoses'] = int(rand_stenoses)
-        vessel_info[key]['max_radius'] = float(new_radius_vec[0]*1000)
-        vessel_info[key]['min_radius'] = float(new_radius_vec[-1]*1000)
-        if connections[ind] is not None:
-            vessel_info[key]['branch_point'] = int(connections[ind]/jj)
-        if rand_stenoses > 0:
-            vessel_info[key]['stenosis_severity'] = [float(i) for i in percent_stenosis]
-            vessel_info[key]['stenosis_position'] = [int(i/jj) for i in stenosis_pos]
-            vessel_info[key]['num_stenosis_points'] = [int(i/jj) for i in num_stenosis_points]
-
-    if visualization:
-        fig = plt.figure(figsize=(2,2), dpi=200, constrained_layout=True)
-        plt.title(vessel_type)
-        ax = fig.add_subplot(projection=Axes3D.name)
-        ax.view_init(elev=20., azim=-70)
-        for surf_coords in surface_coords:
-            ax.plot_surface(surf_coords[:,:,0], surf_coords[:,:,1], surf_coords[:,:,2], alpha=0.5, color="blue")
-        set_axes_equal(ax)
-        plt.axis('off')
-        plt.show()
+    C = tree[0]
+    dC = dtree[0]
+    rand_stenoses = np.random.randint(0, 3)
+    key = "main_vessel"
+    main_is_true = True
+    max_radius = [random.uniform(0.004, main_branch_properties[branch_ID]['max_diameter']) / 2]
 
 
-    return coords, vessel_info, spline_array_list
+
+    percent_stenosis = None
+    stenosis_pos = None
+    num_stenosis_points = None
+
+    if num_stenoses is not None:
+        rand_stenoses = num_stenoses
+
+
+    part1 = C[0:segment_ends[1]]
+    Dpart1 = dC[0:segment_ends[1]]
+    part2 = C[segment_ends[1]:segment_ends[2]]
+    Dpart2 = C[segment_ends[1]:segment_ends[2]]
+    part3 = C[segment_ends[2]:]
+    Dpart3 = dC[segment_ends[2]:]
+
+
+    X1,Y1,Z1, _, _, _, _ = get_vessel_surface(part1, Dpart1, connections, supersampled_num_centerline_points, num_theta, max_radius,
+                                                                                                is_main_branch = main_is_true,
+                                                                                                num_stenoses=rand_stenoses,
+                                                                                                constant_radius=False,
+                                                                                                stenosis_severity=None,
+                                                                                                stenosis_position=None,
+                                                                                                stenosis_length=None,
+                                                                                                stenosis_type="gaussian",
+                                                                                                return_surface=True)
+    X2,Y2,Z2, _, _, _, _ = get_vessel_surface(part2, Dpart2, connections, supersampled_num_centerline_points, num_theta, max_radius,
+                                                                                        is_main_branch = main_is_true,
+                                                                                        num_stenoses=rand_stenoses,
+                                                                                        constant_radius=False,
+                                                                                        stenosis_severity=None,
+                                                                                        stenosis_position=None,
+                                                                                        stenosis_length=None,
+                                                                                        stenosis_type="gaussian",
+                                                                                        return_surface=True)
+    X3,Y3,Z3, _, _, _, _ = get_vessel_surface(part3, Dpart3, connections, supersampled_num_centerline_points, num_theta, max_radius,
+                                                                                is_main_branch = main_is_true,
+                                                                                num_stenoses=rand_stenoses,
+                                                                                constant_radius=False,
+                                                                                stenosis_severity=None,
+                                                                                stenosis_position=None,
+                                                                                stenosis_length=None,
+                                                                                stenosis_type="gaussian",
+                                                                                return_surface=True)
+
+    coords.append(np.stack((X1.flatten(), Y1.flatten(), Z1.flatten())).T)
+    coords.append(np.stack((X2.flatten(), Y2.flatten(), Z2.flatten())).T)
+    coords.append(np.stack((X3.flatten(), Y3.flatten(), Z3.flatten())).T)
+
+
+    return coords, None, None
 
 def make_projection(coords, theta, phi, sod, sid, spacing, img_dim=512, rescale=False):
     def standardize(arr):

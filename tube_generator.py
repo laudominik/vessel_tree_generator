@@ -88,8 +88,8 @@ if __name__ == "__main__":
         vessel_type = args.vessel_type
 
         cpp = "./LCA_branch_control_points/moderate" if vessel_type in ['LCX', 'LAD'] else "./RCA_branch_control_points/moderate"
-        coords, vessel_info, spline_array_list = generate_vessel_3d(rng, vessel_type, cpp, args.shear, args.warp, spline_index, args.save_visualization)
-        if coords is None:
+        segments, _, _ = generate_vessel_3d(rng, vessel_type, cpp, args.shear, args.warp, spline_index, args.save_visualization)
+        if segments is None:
             continue
         ###################################
         ######       projections     ######
@@ -99,35 +99,38 @@ if __name__ == "__main__":
         SID = 1.2
         SOD = 0.75
 
+        vessel_info = dict()
+
         vessel_info["ImagerPixelSpacing"] = ImagerPixelSpacing
         vessel_info["SID"] = SID
         vessel_info["SOD"] = SOD
 
         theta_array, phi_array = pick_angles(num_projections)
-        
         for i in range(num_projections):
-            img = make_projection(coords, theta_array[i], phi_array[i], SOD, SID, (ImagerPixelSpacing, ImagerPixelSpacing), rescale=vessel_type in ['LCX', 'LAD'])
-            suffixes = ['a', 'b', 'c', 'd']
+            print("Here!")
+            this_mask = []
+            
+            for j in range(len(segments)):
+                
+                print(segments[j].shape)
+                img = make_projection(segments[j], theta_array[i], phi_array[i], SOD, SID, (ImagerPixelSpacing, ImagerPixelSpacing), rescale=vessel_type in ['LCX', 'LAD'])
+                
+                this_mask.append(img)
+                suffixes = ['a', 'b', 'c', 'd']
 
-            if not os.path.exists(os.path.join(save_path, dataset_name, "images", dataset_name)):
-                os.makedirs(os.path.join(save_path, dataset_name, "images", dataset_name))
+                if not os.path.exists(os.path.join(save_path, dataset_name, "images", dataset_name)):
+                    os.makedirs(os.path.join(save_path, dataset_name, "images", dataset_name))
 
-            path = os.path.join(save_path, dataset_name, "images", dataset_name, "image{:04d}{}.png".format(spline_index,suffixes[i]))
-            plt.imsave(path, img, cmap="gray")
+                path = os.path.join(save_path, dataset_name, "images", dataset_name, "image{:04d}{}-seg{}.png".format(spline_index,suffixes[i], j))
+                plt.imsave(path, img, cmap="gray")
+            
+            this_mask = np.stack((this_mask[0], this_mask[1], this_mask[2]))
+            plt.imsave("example.png", this_mask.T.astype(np.float32), cmap="brg")
+            plt.imshow(this_mask.T)
+            
 
         vessel_info['theta_array'] = [float(i) for i in theta_array.tolist()]
         vessel_info['phi_array'] = [float(j) for j in phi_array.tolist()]
 
-        #saves geometry as npy file (X,Y,Z,R) matrix
-        if not os.path.exists(os.path.join(save_path, dataset_name, "labels", dataset_name)):
-            os.makedirs(os.path.join(save_path, dataset_name, "labels", dataset_name))
-        if not os.path.exists(os.path.join(save_path, dataset_name, "info")):
-            os.makedirs(os.path.join(save_path, dataset_name, "info"))
-
-        #saves geometry as npy file (X,Y,Z,R) matrix
-        tree_array = np.array(spline_array_list)
-        np.save(os.path.join(save_path, dataset_name, "labels", dataset_name, "{:04d}".format(spline_index)), tree_array)
-
-        # writes a text file for each tube with relevant parameters used to generate the geometry
-        with open(os.path.join(save_path, dataset_name, "info", "{:04d}.info.0".format(spline_index)), 'w+') as outfile:
-            json.dump(vessel_info, outfile, indent=2)
+        print(vessel_info)
+    
