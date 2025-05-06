@@ -9,6 +9,7 @@ import random
 import json
 import copy
 import argparse
+import pickle
 
 # general: required arguments
 parser = argparse.ArgumentParser('3D vessel tree generator')
@@ -107,7 +108,6 @@ if __name__ == "__main__":
 
         theta_array, phi_array = pick_angles(num_projections)
         for i in range(num_projections):
-            print("Here!")
             this_mask = []
             
             for j in range(len(segments)):
@@ -127,7 +127,18 @@ if __name__ == "__main__":
             this_mask = np.stack((this_mask[0], this_mask[1], this_mask[2]))
             plt.imsave("example.png", this_mask.T.astype(np.float32), cmap="brg")
             plt.imshow(this_mask.T)
-            
+
+        with open(os.path.join(save_path, dataset_name, f"gt{spline_index}.pkl"), 'wb') as f:
+            pickle.dump({
+                "segments": segments,
+                "sid": SID,
+                "sod": SOD,
+                "alphas": theta_array,
+                "betas": phi_array,
+                "spacing": ImagerPixelSpacing,
+            }, f)
+
+
 
         vessel_info['theta_array'] = [float(i) for i in theta_array.tolist()]
         vessel_info['phi_array'] = [float(j) for j in phi_array.tolist()]
